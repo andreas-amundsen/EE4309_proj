@@ -136,6 +136,20 @@ class ResNet(nn.Module):
         # 3. Apply global average pooling and flatten
         # 4. Apply final fully connected layer
         # This should match the torchvision ResNet-50 structure
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.maxpool(out)
+        out = self.layer1(out)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.layer4(out)
+
+        out = self.avgpool(out)
+        out = torch.flatten(out, 1)
+        out = self.fc(out)
+
+        return out
         raise NotImplementedError("ResNet.forward() not implemented")
         # ========================================================
 
@@ -168,6 +182,12 @@ class BackboneWithFPN(nn.Module):
         # 3. Return the FPN output (OrderedDict of multi-scale features)
         # This creates the feature pyramid needed for multi-scale detection
         raise NotImplementedError("BackboneWithFPN.forward() not implemented")
+        features = self.body(x)      # dict {layer-str: tensor}
+
+        # step-2: feed those into FPN to obtain fused pyramid
+        feature_pyramid = self.fpn(features) # dict {level-idx: tensor}
+
+        return feature_pyramid
         # =================================================================
 
 
