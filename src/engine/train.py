@@ -127,7 +127,21 @@ def main():
             # 3. Sum all losses from the loss dictionary
             # 4. Backward pass: scale losses, compute gradients, step optimizer
             # 5. Update scaler for mixed precision training
-            raise NotImplementedError("Training step not implemented")
+            images = [img.to(device) for img in images]
+            targets = [
+                {k: (v.to(device) if hasattr(v, "to") else v) for k, v in t.items()}
+                for t in targets
+            ]
+
+            optim.zero_grad(set_to_none=True)
+            with autocast(enabled=use_amp):
+                loss_dict = model(images, targets)          # dict of losses
+                losses = sum(loss_dict.values())
+
+            scaler.scale(losses).backward()
+            scaler.step(optim)
+            scaler.update()
+            # raise NotImplementedError("Training step not implemented")
             # ==================================================
 
             loss_sum += losses.item()
@@ -148,10 +162,40 @@ def main():
         # 4. Compute final mAP and extract the "map" value
         # Handle exceptions gracefully and set map50 = -1.0 if evaluation fails
         try:
-            raise NotImplementedError("mAP evaluation not implemented")
+          from torchmetrics.detection.mean_ap import MeanAveragePrecision
+
+          model.eval()
+          metric = MeanAveragePrecision(iou_type="bbox")
+          with torch.no_grad():
+              for images, targets in val_loader:
+                  images = [img.to(device) for img in images]
+
+                  # Inference
+                  outputs = model(images)
+
+                  # torchmetrics expects CPU tensors
+                  preds = []
+                  for o in outputs:
+                      preds.append({
+                          "boxes": o["boxes"].detach().cpu(),
+                          "scores": o["scores"].detach().cpu(),
+                          "labels": o["labels"].detach().cpu(),
+                      })
+
+                  gts = []
+                  for t in targets:
+                      gts.append({
+                          "boxes": t["boxes"].detach().cpu(),
+                          "labels": t["labels"].detach().cpu(),
+                      })
+
+                  metric.update(preds, gts)
+
+          metrics = metric.compute()
+          map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
         except Exception as e:
-            print("Eval skipped due to:", e)
-            map50 = -1.0
+          print("Eval skipped due to:", e)
+          map50 = -1.0
         # ===================================================
 
         is_best = map50 > best_map

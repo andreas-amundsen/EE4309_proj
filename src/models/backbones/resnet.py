@@ -181,13 +181,13 @@ class BackboneWithFPN(nn.Module):
         # 2. Pass features through FPN (self.fpn) to create feature pyramid
         # 3. Return the FPN output (OrderedDict of multi-scale features)
         # This creates the feature pyramid needed for multi-scale detection
-        raise NotImplementedError("BackboneWithFPN.forward() not implemented")
         features = self.body(x)      # dict {layer-str: tensor}
 
         # step-2: feed those into FPN to obtain fused pyramid
         feature_pyramid = self.fpn(features) # dict {level-idx: tensor}
 
         return feature_pyramid
+        raise NotImplementedError("BackboneWithFPN.forward() not implemented")
         # =================================================================
 
 
@@ -241,6 +241,30 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
     #    (hint: use backbone.fc.in_features to determine channel progression)
     # 4. Create and return BackboneWithFPN with all components
     # This integrates ResNet feature extraction with FPN multi-scale features
+    if config is None:
+      config = ResNetBackboneConfig()
+
+    backbone = ResNet(layers=(3, 4, 6, 3))
+    _load_pretrained_weights(backbone, config)
+    _freeze_backbone_layers(backbone, config.trainable_layers)
+
+    return_layers: Dict[str, str] = {
+        "layer1": "0",
+        "layer2": "1",
+        "layer3": "2",
+        "layer4": "3",
+    }
+
+    exp = Bottleneck.expansion
+    inplanes = backbone.inplanes
+    in_channels_list = [inplanes * exp, inplanes * 2 * exp, inplanes * 4 * exp, inplanes * 8 * exp]  # [256, 512, 1024, 2048]
+
+    return BackboneWithFPN(
+        backbone=backbone,
+        return_layers=return_layers,
+        in_channels_list=in_channels_list,
+        out_channels=config.out_channels,
+    )
     raise NotImplementedError("build_resnet50_fpn_backbone() not implemented")
     # ===================================================================
 
