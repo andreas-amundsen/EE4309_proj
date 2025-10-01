@@ -64,6 +64,27 @@ class Bottleneck(nn.Module):
         # 4. Add skip connection (identity or downsample if needed)
         # 5. Apply final ReLU activation
         # Remember to handle the downsample path when stride > 1
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if hasattr(self, 'downsample'):
+            identity = self.downsample(x) # its spatial/depth dimensions match the main branch output
+
+        out += identity # residual connection that eases gradient flow
+        out = self.relu(out)
+
+        return out
         raise NotImplementedError("Bottleneck.forward() not implemented")
         # =============================================================
 
