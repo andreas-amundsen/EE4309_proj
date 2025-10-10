@@ -124,16 +124,7 @@ def build_faster_rcnn(
         box_detections_per_img=cfg.detections_per_img,
     )
 
-    # Replace predictor to match the requested number of classes
-    # Torchvision's FastRCNNPredictor expects the representation size from the box head.
-    if hasattr(model.roi_heads.box_head, "out_channels"):
-        in_features = model.roi_heads.box_head.out_channels
-    elif hasattr(model.roi_heads.box_head, "fc7"):
-        in_features = model.roi_heads.box_head.fc7.out_features
-    else:
-        # Fallback: derive from existing predictor if present
-        in_features = model.roi_heads.box_predictor.cls_score.in_features
-
+    in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
     return model
