@@ -255,7 +255,7 @@ def main():
             canvas = torchvision.utils.draw_bounding_boxes(
                 canvas, boxes,
                 labels=[f"{s:.2f}" for s in scores],
-                colors="cyan", width=2
+                colors="red", width=2
             )
 
         out_path = vis_dir / f"train_sample_{i+1}_vis.jpg"
