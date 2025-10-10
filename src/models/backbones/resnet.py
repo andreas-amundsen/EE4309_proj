@@ -259,12 +259,41 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
     inplanes = backbone.inplanes
     in_channels_list = [inplanes * exp, inplanes * 2 * exp, inplanes * 4 * exp, inplanes * 8 * exp]  # [256, 512, 1024, 2048]
 
-    return BackboneWithFPN(
+    backbone_with_fpn = BackboneWithFPN(
         backbone=backbone,
         return_layers=return_layers,
         in_channels_list=in_channels_list,
         out_channels=config.out_channels,
     )
+    ### For debugging purposes
+    # Optional quick validation: run a dummy forward and print feature map shapes.
+    if True:
+        try:
+            backbone_with_fpn.eval()
+            import torch as _torch
+
+            # Use a moderate size to exercise the pyramid without heavy memory use
+            dummy = _torch.zeros(1, 3, 800, 800)
+            with _torch.no_grad():
+                feats = backbone_with_fpn(dummy)
+
+            if not isinstance(feats, dict) or len(feats) == 0:
+                print("WARNING: backbone_with_fpn returned no feature maps (empty dict)")
+            else:
+                print("Backbone FPN feature maps:")
+                for k, v in feats.items():
+                    if not isinstance(v, _torch.Tensor):
+                        print(f"  - key={k}: not a Tensor (type={type(v)})")
+                    else:
+                        print(f"  - key={k}: shape={tuple(v.shape)} dtype={v.dtype}")
+                        if v.ndim != 4:
+                            print(f"    -> WARNING: expected 4D tensor (B,C,H,W), got ndim={v.ndim}")
+                        if v.shape[1] != config.out_channels:
+                            print(f"    -> WARNING: expected out_channels={config.out_channels}, got {v.shape[1]}")
+        except Exception as _e:
+            print(f"WARNING: validation forward pass failed: {_e}")
+
+    return backbone_with_fpn
     raise NotImplementedError("build_resnet50_fpn_backbone() not implemented")
     # ===================================================================
 
