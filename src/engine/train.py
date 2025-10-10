@@ -220,7 +220,7 @@ def main():
 
     # pick 5 random indices
     num_samples = 5
-    indices = random.sample(range(len(train_set)), num_samples)
+    indices = list(range(len(train_set) - num_samples, len(train_set)))
 
     vis_dir = Path(args.output) / "train_vis"
     vis_dir.mkdir(parents=True, exist_ok=True)
