@@ -267,7 +267,7 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
     )
     ### For debugging purposes
     # Optional quick validation: run a dummy forward and print feature map shapes.
-    if True:
+    if False:
         try:
             backbone_with_fpn.eval()
             import torch as _torch

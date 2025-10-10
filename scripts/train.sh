@@ -33,7 +33,7 @@ python3 -m src.engine.train \
   --output "$OUTPUT" \
   --model "$MODEL" \
   --seed 42 \
-  --train-subset-size 2000 \
-  --val-subset-size 500
+  --train-subset-size 10 \
+  --val-subset-size 1
 
 echo "✅ Training completed! Check results in $OUTPUT/"
