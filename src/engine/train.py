@@ -161,133 +161,41 @@ def main():
         #    - Update metric with predictions and ground truth targets
         # 4. Compute final mAP and extract the "map" value
         # Handle exceptions gracefully and set map50 = -1.0 if evaluation fails
-        # try:
-        #   from torchmetrics.detection.mean_ap import MeanAveragePrecision
-
-        #   model.eval()
-        #   metric = MeanAveragePrecision(iou_type="bbox")
-        #   with torch.no_grad():
-        #       for images, targets in val_loader:
-        #           images = [img.to(device) for img in images]
-
-        #           # Inference
-        #           outputs = model(images)
-
-        #           # torchmetrics expects CPU tensors
-        #           preds = []
-        #           for o in outputs:
-        #               preds.append({
-        #                   "boxes": o["boxes"].detach().cpu(),
-        #                   "scores": o["scores"].detach().cpu(),
-        #                   "labels": o["labels"].detach().cpu(),
-        #               })
-
-        #           gts = []
-        #           for t in targets:
-        #               gts.append({
-        #                   "boxes": t["boxes"].detach().cpu(),
-        #                   "labels": t["labels"].detach().cpu(),
-        #               })
-
-        #           metric.update(preds, gts)
-
-        #   metrics = metric.compute()
-        #   map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
-        # except Exception as e:
-        #   print("Eval skipped due to:", e)
-        #   map50 = -1.0
-
         try:
           from torchmetrics.detection.mean_ap import MeanAveragePrecision
 
-          # ==== ADDED FOR LIGHTWEIGHT VIS ====
-          import random, numpy as np
-          import matplotlib.pyplot as plt
-          import matplotlib.patches as patches
-          from pathlib import Path as _Path
-          # ====================================
-
-          def _to_cpu_det_list(outputs):
-              return [{
-                  "boxes": o["boxes"].detach().cpu(),
-                  "scores": o["scores"].detach().cpu(),
-                  "labels": o["labels"].detach().cpu(),
-              } for o in outputs]
-
-          def _to_cpu_gt_list(targets):
-              return [{
-                  "boxes": t["boxes"].detach().cpu(),
-                  "labels": t["labels"].detach().cpu(),
-              } for t in targets]
-
-          # ---- minimal drawer (GT green dashed, Pred blue solid + conf) ----
-          def _draw(ax, img_tensor, pred, gt, title):
-              img = img_tensor.detach().cpu()
-              if img.max() > 1.5: img = img / 255.0
-              img = img.numpy().transpose(1,2,0)
-              ax.imshow(img); ax.axis('off'); ax.set_title(title, fontsize=11)
-
-              # GT
-              for b,l in zip(gt["boxes"].numpy(), gt["labels"].numpy().astype(int)):
-                  x1,y1,x2,y2 = b; w,h = max(0,x2-x1), max(0,y2-y1)
-                  ax.add_patch(patches.Rectangle((x1,y1), w,h, fill=False,
-                                                 edgecolor=(0.0,0.7,0.2), linewidth=2.0, linestyle='--'))
-                  ax.text(x1, max(0,y1-3), f"GT: {l}", fontsize=9, color='white',
-                          bbox=dict(facecolor=(0.0,0.7,0.2), alpha=0.8, boxstyle='round,pad=0.2'))
-
-              # Predictions
-              for b,l,s in zip(pred["boxes"].numpy(),
-                               pred["labels"].numpy().astype(int),
-                               pred["scores"].numpy()):
-                  x1,y1,x2,y2 = b; w,h = max(0,x2-x1), max(0,y2-y1)
-                  ax.add_patch(patches.Rectangle((x1,y1), w,h, fill=False,
-                                                 edgecolor=(0.11,0.6,0.9), linewidth=2.0))
-                  ax.text(x1, max(0,y1-3), f"{l} {s:.2f}", fontsize=9, color='white',
-                          bbox=dict(facecolor=(0.11,0.6,0.9), alpha=0.85, boxstyle='round,pad=0.2'))
-          # ------------------------------------------------------------------
-
           model.eval()
           metric = MeanAveragePrecision(iou_type="bbox")
-
-          # cache a lightweight list for random visualizations
-          cached = []  # each: {"image": CxHxW tensor, "pred": {...}, "gt": {...}}
-
           with torch.no_grad():
               for images, targets in val_loader:
                   images = [img.to(device) for img in images]
+
+                  # Inference
                   outputs = model(images)
 
-                  preds = _to_cpu_det_list(outputs)
-                  gts = _to_cpu_gt_list(targets)
-                  metric.update(preds, gts)
+                  # torchmetrics expects CPU tensors
+                  preds = []
+                  for o in outputs:
+                      preds.append({
+                          "boxes": o["boxes"].detach().cpu(),
+                          "scores": o["scores"].detach().cpu(),
+                          "labels": o["labels"].detach().cpu(),
+                      })
 
-                  # keep first image in batch (val_loader uses batch_size=1)
-                  cached.append({"image": images[0].detach().cpu(),
-                                 "pred": preds[0], "gt": gts[0]})
+                  gts = []
+                  for t in targets:
+                      gts.append({
+                          "boxes": t["boxes"].detach().cpu(),
+                          "labels": t["labels"].detach().cpu(),
+                      })
+
+                  metric.update(preds, gts)
 
           metrics = metric.compute()
           map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
-
-          # ===== ADDED: random 6 visualizations saved to disk =====
-          if len(cached) > 0:
-              K = min(6, len(cached))
-              picks = random.sample(cached, k=K)
-              vis_dir = _Path(args.output) / "train_random_images"
-              vis_dir.mkdir(parents=True, exist_ok=True)
-
-              for idx, sample in enumerate(picks, start=1):
-                  fig, ax = plt.subplots(1,1, figsize=(8,6))
-                  _draw(ax, sample["image"], sample["pred"], sample["gt"],
-                        title=f"Random Val Sample #{idx}")
-                  out = vis_dir / f"random_{idx}.jpg"
-                  plt.tight_layout(); plt.savefig(out, dpi=150); plt.close(fig)
-              print(f"Saved {K} random qualitative plots to: {vis_dir}")
-          # =========================================================
-
         except Exception as e:
           print("Eval skipped due to:", e)
           map50 = -1.0
-        # ===================================================
 
         is_best = map50 > best_map
         best_map = max(best_map, map50)
@@ -305,6 +213,56 @@ def main():
             torch.save(ckpt, os.path.join(args.output, "best.pt"))
         print(f"[epoch {epoch}] avg_loss={avg_loss:.4f}  mAP@0.5={map50:.4f}  best={best_map:.4f}")
 
+    ## Added by Andreas for debugging
+    from torchvision.transforms.functional import to_pil_image, resize
+    import random
+    import torchvision
+
+    # pick 5 random indices
+    num_samples = 5
+    indices = random.sample(range(len(train_set)), num_samples)
+
+    vis_dir = Path(args.output) / "train_vis"
+    vis_dir.mkdir(parents=True, exist_ok=True)
+
+    for i, idx in enumerate(indices):
+        img, target = train_set[idx]
+        img_tensor = img.to(device).unsqueeze(0)
+
+        with torch.no_grad():
+            output = model(img_tensor)[0]
+
+        img_cpu = img.detach().cpu()
+        pred = {k: v.detach().cpu() for k, v in output.items()}
+        gt = {k: v.detach().cpu() for k, v in target.items()}
+
+        # resize and convert to uint8
+        image_resized = resize(img_cpu, (800, 1216))
+        canvas = (image_resized * 255).byte()
+
+        # draw ground-truth boxes
+        if gt["boxes"].numel() > 0:
+            canvas = torchvision.utils.draw_bounding_boxes(
+                canvas, gt["boxes"],
+                labels=["GT"] * gt["boxes"].shape[0],
+                colors="green", width=2
+            )
+
+        # draw predicted boxes
+        if pred["boxes"].numel() > 0:
+            boxes = pred["boxes"]
+            scores = pred["scores"]
+            canvas = torchvision.utils.draw_bounding_boxes(
+                canvas, boxes,
+                labels=[f"{s:.2f}" for s in scores],
+                colors="cyan", width=2
+            )
+
+        out_path = vis_dir / f"train_sample_{i+1}_vis.jpg"
+        to_pil_image(canvas).save(out_path)
+        print(f"✅ Saved training visualization to {out_path}")
+
+#######
 
 if __name__ == "__main__":
     main()
