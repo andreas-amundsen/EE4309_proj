@@ -237,8 +237,7 @@ def main():
         gt = {k: v.detach().cpu() for k, v in target.items()}
 
         # resize and convert to uint8
-        image_resized = resize(img_cpu, (800, 1216))
-        canvas = (image_resized * 255).byte()
+        canvas = (img_cpu * 255).byte()
 
         # draw ground-truth boxes
         if gt["boxes"].numel() > 0:
