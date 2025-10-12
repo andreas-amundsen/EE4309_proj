@@ -246,44 +246,44 @@ def main():
 
     ### MAP for training data
 
-    try:
-        from torchmetrics.detection.mean_ap import MeanAveragePrecision
+    # try:
+    #     from torchmetrics.detection.mean_ap import MeanAveragePrecision
 
-        model.eval()
-        metric = MeanAveragePrecision(iou_type="bbox",  iou_thresholds=[0.5], class_metrics=True)
-        with torch.no_grad():
-            for images, targets in train_loader:
-                images = [img.to(device) for img in images]
+    #     model.eval()
+    #     metric = MeanAveragePrecision(iou_type="bbox",  iou_thresholds=[0.5], class_metrics=True)
+    #     with torch.no_grad():
+    #         for images, targets in train_loader:
+    #             images = [img.to(device) for img in images]
 
-                # Inference
-                outputs = model(images)
+    #             # Inference
+    #             outputs = model(images)
 
-                # torchmetrics expects CPU tensors
-                preds = []
-                for o in outputs:
-                    preds.append({
-                        "boxes": o["boxes"].detach().cpu(),
-                        "scores": o["scores"].detach().cpu(),
-                        "labels": o["labels"].detach().cpu(),
-                    })
+    #             # torchmetrics expects CPU tensors
+    #             preds = []
+    #             for o in outputs:
+    #                 preds.append({
+    #                     "boxes": o["boxes"].detach().cpu(),
+    #                     "scores": o["scores"].detach().cpu(),
+    #                     "labels": o["labels"].detach().cpu(),
+    #                 })
 
-                # print("\n\nOutputs from training data", outputs)
+    #             # print("\n\nOutputs from training data", outputs)
 
-                gts = []
-                for t in targets:
-                    gts.append({
-                        "boxes": t["boxes"].detach().cpu(),
-                        "labels": t["labels"].detach().cpu(),
-                    })
+    #             gts = []
+    #             for t in targets:
+    #                 gts.append({
+    #                     "boxes": t["boxes"].detach().cpu(),
+    #                     "labels": t["labels"].detach().cpu(),
+    #                 })
 
-                metric.update(preds, gts)
+    #             metric.update(preds, gts)
 
-        metrics = metric.compute()
-        map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
-        print("\n\nMap on training images:", map50)
-    except Exception as e:
-        print("Eval skipped due to:", e)
-        map50 = -1.0
+    #     metrics = metric.compute()
+    #     map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
+    #     print("\n\nMap on training images:", map50)
+    # except Exception as e:
+    #     print("Eval skipped due to:", e)
+    #     map50 = -1.0
 
     ## Added by Andreas for debugging
     from torchvision.transforms.functional import to_pil_image, resize

@@ -245,7 +245,7 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
     if config is None:
       config = ResNetBackboneConfig()
 
-    backbone = ResNet(layers=(3, 4, 6, 3), num_classes=21)
+    backbone = ResNet(layers=(3, 4, 6, 3), num_classes=1000)
 
     _load_pretrained_weights(backbone, config)
     _freeze_backbone_layers(backbone, config.trainable_layers)
