@@ -133,6 +133,17 @@ def main():
                 for t in targets
             ]
 
+            for t in targets:
+                if "boxes" in t:
+                    boxes = t["boxes"]
+                    if boxes.ndim != 2 or boxes.shape[1] != 4:
+                        print(f"⚠️ Bad GT shape: {boxes.shape}")
+                    if (boxes < 0).any():
+                        print(f"⚠️ Negative coords in GT: {boxes.min().item():.2f}")
+                    # optional sanity: assume image size 512x512
+                    if (boxes.max() < 2.0).item():
+                        print("⚠️ Boxes seem normalized (0–1), should be pixel coords")
+
             optim.zero_grad(set_to_none=True)
             with autocast(enabled=use_amp):
                 loss_dict = model(images, targets)          # dict of losses
@@ -168,34 +179,37 @@ def main():
           metric = MeanAveragePrecision(iou_type="bbox")
           with torch.no_grad():
               for images, targets in val_loader:
-                  images = [img.to(device) for img in images]
+                    images = [img.to(device) for img in images]
 
-                  # Inference
-                  outputs = model(images)
+                    # Inference
+                    outputs = model(images)
 
-                  # torchmetrics expects CPU tensors
-                  preds = []
-                  for o in outputs:
-                      preds.append({
-                          "boxes": o["boxes"].detach().cpu(),
-                          "scores": o["scores"].detach().cpu(),
-                          "labels": o["labels"].detach().cpu(),
-                      })
+                    # torchmetrics expects CPU tensors
+                    preds = []
+                    for o in outputs:
+                        preds.append({
+                            "boxes": o["boxes"].detach().cpu(),
+                            "scores": o["scores"].detach().cpu(),
+                            "labels": o["labels"].detach().cpu(),
+                        })
 
-                  gts = []
-                  for t in targets:
-                      gts.append({
-                          "boxes": t["boxes"].detach().cpu(),
-                          "labels": t["labels"].detach().cpu(),
-                      })
+                    gts = []
+                    for t in targets:
+                        gts.append({
+                            "boxes": t["boxes"].detach().cpu(),
+                            "labels": t["labels"].detach().cpu(),
+                        })
 
-                  metric.update(preds, gts)
+                    metric.update(preds, gts)
+
 
           metrics = metric.compute()
           map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
         except Exception as e:
           print("Eval skipped due to:", e)
           map50 = -1.0
+
+        # ====================================================
 
         is_best = map50 > best_map
         best_map = max(best_map, map50)
@@ -256,12 +270,25 @@ def main():
                 labels=[f"{s:.2f}" for s in scores],
                 colors="red", width=2
             )
+        
+        print("Checking test boxes for evaluation")
+
+        if len(pred["boxes"]):
+            top_boxes = pred["boxes"][:3]  # print first 3 boxes for readability
+            top_scores = pred["scores"][:3]
+            print(f"[{i+1}] preds={len(pred['boxes'])}, "
+                f"max_score={pred['scores'].max().item():.2f}, "
+                f"sample_boxes={[b.tolist() for b in top_boxes]}, "
+                f"sample_scores={[round(s.item(), 2) for s in top_scores]}")
+        else:
+            print(f"[{i+1}] preds=0")
+
 
         out_path = vis_dir / f"train_sample_{i+1}_vis.jpg"
         to_pil_image(canvas).save(out_path)
         print(f"✅ Saved training visualization to {out_path}")
 
-#######
+        # ===============================
 
 if __name__ == "__main__":
     main()

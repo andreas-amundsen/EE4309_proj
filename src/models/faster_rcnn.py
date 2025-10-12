@@ -106,6 +106,9 @@ def build_faster_rcnn(
     print("[faster_rcnn 106] Anchor list:", anchor_generator.num_anchors_per_location())
     rpn_head = rpn_head_factory(num_anchors)
 
+    print("Anchor generator sizes", len(anchor_generator.sizes))
+    print("bacbbone featoure length", len(backbone.featmap_names))
+
     # Build the detector
     model = FasterRCNN(
         backbone=backbone.body,

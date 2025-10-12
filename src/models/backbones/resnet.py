@@ -246,7 +246,7 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
       config = ResNetBackboneConfig()
 
     backbone = ResNet(layers=(3, 4, 6, 3))
-    
+
     _load_pretrained_weights(backbone, config)
     _freeze_backbone_layers(backbone, config.trainable_layers)
 
@@ -269,7 +269,7 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
     )
     ### For debugging purposes
     # Optional quick validation: run a dummy forward and print feature map shapes.
-    if False:
+    if True:
         try:
             backbone_with_fpn.eval()
             import torch as _torch
