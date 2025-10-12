@@ -143,7 +143,7 @@ def main():
             with autocast(enabled=use_amp):
                 loss_dict = model(images, targets) # dict of losses
                 if i==7:         
-                    print("\nLoss dict:", loss_dict)
+                    print("\nLoss box reg:", loss_dict['loss_box_reg'])
                 losses = sum(loss_dict.values())
 
            # ======================================================
