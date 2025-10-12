@@ -139,7 +139,7 @@ def main():
             optim.zero_grad(set_to_none=True)
             with autocast(enabled=use_amp):
                 loss_dict = model(images, targets)          # dict of losses
-                print("\nLoss dict:", loss_dict)
+                # print("\nLoss dict:", loss_dict)
                 losses = sum(loss_dict.values())
 
            # ======================================================
