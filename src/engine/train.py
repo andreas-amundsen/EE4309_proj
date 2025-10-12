@@ -133,8 +133,8 @@ def main():
                 for t in targets
             ]
 
-            print("Len of targets:", len(targets))
-            print("Targets object", targets)
+            # print("Len of targets:", len(targets))
+            # print("Targets object", targets)
 
             optim.zero_grad(set_to_none=True)
             with autocast(enabled=use_amp):
@@ -175,47 +175,6 @@ def main():
         sched.step()
         avg_loss = loss_sum / len(train_loader)
         save_jsonl([{"epoch": epoch, "loss": avg_loss}], os.path.join(args.output, "logs.jsonl"))
-
-        ### MAP for training data
-
-        try:
-          from torchmetrics.detection.mean_ap import MeanAveragePrecision
-
-          model.eval()
-          metric = MeanAveragePrecision(iou_type="bbox")
-          with torch.no_grad():
-              for images, targets in train_loader:
-                    images = [img.to(device) for img in images]
-
-                    # Inference
-                    outputs = model(images)
-
-                    # torchmetrics expects CPU tensors
-                    preds = []
-                    for o in outputs:
-                        preds.append({
-                            "boxes": o["boxes"].detach().cpu(),
-                            "scores": o["scores"].detach().cpu(),
-                            "labels": o["labels"].detach().cpu(),
-                        })
-
-                    print("\n\nOutputs from training data", outputs)
-
-                    gts = []
-                    for t in targets:
-                        gts.append({
-                            "boxes": t["boxes"].detach().cpu(),
-                            "labels": t["labels"].detach().cpu(),
-                        })
-
-                    metric.update(preds, gts)
-
-          metrics = metric.compute()
-          map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
-          print("\n\nMap on training images:", map50)
-        except Exception as e:
-          print("Eval skipped due to:", e)
-          map50 = -1.0
 
 
         # ===== STUDENT TODO: Implement mAP evaluation =====
@@ -282,6 +241,47 @@ def main():
         if is_best:
             torch.save(ckpt, os.path.join(args.output, "best.pt"))
         print(f"[epoch {epoch}] avg_loss={avg_loss:.4f}  mAP@0.5={map50:.4f}  best={best_map:.4f}")
+
+    ### MAP for training data
+
+    try:
+        from torchmetrics.detection.mean_ap import MeanAveragePrecision
+
+        model.eval()
+        metric = MeanAveragePrecision(iou_type="bbox")
+        with torch.no_grad():
+            for images, targets in train_loader:
+                images = [img.to(device) for img in images]
+
+                # Inference
+                outputs = model(images)
+
+                # torchmetrics expects CPU tensors
+                preds = []
+                for o in outputs:
+                    preds.append({
+                        "boxes": o["boxes"].detach().cpu(),
+                        "scores": o["scores"].detach().cpu(),
+                        "labels": o["labels"].detach().cpu(),
+                    })
+
+                print("\n\nOutputs from training data", outputs)
+
+                gts = []
+                for t in targets:
+                    gts.append({
+                        "boxes": t["boxes"].detach().cpu(),
+                        "labels": t["labels"].detach().cpu(),
+                    })
+
+                metric.update(preds, gts)
+
+        metrics = metric.compute()
+        map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
+        print("\n\nMap on training images:", map50)
+    except Exception as e:
+        print("Eval skipped due to:", e)
+        map50 = -1.0
 
     ## Added by Andreas for debugging
     from torchvision.transforms.functional import to_pil_image, resize
