@@ -119,7 +119,10 @@ def main():
         pbar = tqdm(train_loader, ncols=100, desc=f"train[{epoch}/{args.epochs}]")
         loss_sum = 0.0
 
+        i = 0
+
         for images, targets in pbar:
+            i +=1
             # ===== STUDENT TODO: Implement training step =====
             # Hint: Complete the training loop:
             # 1. Use autocast context for mixed precision if enabled
@@ -138,8 +141,9 @@ def main():
 
             optim.zero_grad(set_to_none=True)
             with autocast(enabled=use_amp):
-                loss_dict = model(images, targets)          # dict of losses
-                # print("\nLoss dict:", loss_dict)
+                loss_dict = model(images, targets) # dict of losses
+                if i==7:         
+                    print("\nLoss dict:", loss_dict)
                 losses = sum(loss_dict.values())
 
            # ======================================================
@@ -190,7 +194,7 @@ def main():
           from torchmetrics.detection.mean_ap import MeanAveragePrecision
 
           model.eval()
-          metric = MeanAveragePrecision(iou_type="bbox")
+          metric = MeanAveragePrecision(iou_type="bbox",  iou_thresholds=[0.5], class_metrics=True)
           with torch.no_grad():
               for images, targets in val_loader:
                     images = [img.to(device) for img in images]
@@ -246,7 +250,7 @@ def main():
         from torchmetrics.detection.mean_ap import MeanAveragePrecision
 
         model.eval()
-        metric = MeanAveragePrecision(iou_type="bbox")
+        metric = MeanAveragePrecision(iou_type="bbox",  iou_thresholds=[0.5], class_metrics=True)
         with torch.no_grad():
             for images, targets in train_loader:
                 images = [img.to(device) for img in images]
