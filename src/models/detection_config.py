@@ -20,16 +20,6 @@ DEFAULT_BOX_SCORE_THRESH = 0.1
 DEFAULT_BOX_NMS_THRESH = 0.4
 DEFAULT_BOX_DETECTIONS_PER_IMG = 300
 
-cfg = None
-
-cfg.box_score_thresh=0.0
-cfg.box_nms_thresh=0.9
-cfg.detections_per_img=300
-cfg.rpn_nms_thresh=0.9
-cfg.rpn_score_thresh=0.0
-#space
-
-
 __all__ = [
     "DEFAULT_ANCHOR_SIZES",
     "DEFAULT_ASPECT_RATIOS",

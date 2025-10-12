@@ -102,13 +102,13 @@ def build_faster_rcnn(
 
     cfg = config or DetectorConfig()
 
-    # override thresholds to guarantee that bmodel predicts something
-    cfg.box_score_thresh=0.0
-    cfg.box_nms_thresh=0.9
-    cfg.detections_per_img=300
-    cfg.rpn_nms_thresh=0.9
-    cfg.rpn_score_thresh=0.0
-    #space
+    # # override thresholds to guarantee that bmodel predicts something
+    # cfg.box_score_thresh=0.0
+    # cfg.box_nms_thresh=0.5
+    # cfg.detections_per_img=300
+    # cfg.rpn_nms_thresh=0.6
+    # cfg.rpn_score_thresh=0.00
+    # #space
 
     # RPN head
     num_anchors = anchor_generator.num_anchors_per_location()[0]
