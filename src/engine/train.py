@@ -133,6 +133,9 @@ def main():
                 for t in targets
             ]
 
+            print(len(targets))
+            print(targets)
+
             for t in targets:
                 if "boxes" in t:
                     boxes = t["boxes"]
