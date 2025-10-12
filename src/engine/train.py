@@ -136,36 +136,28 @@ def main():
             print("Len of targets:", len(targets))
             print("Targets object", targets)
 
-            for t in targets:
-                if "boxes" in t:
-                    boxes = t["boxes"]
-                    if boxes.ndim != 2 or boxes.shape[1] != 4:
-                        print(f"⚠️ Bad GT shape: {boxes.shape}")
-                    if (boxes < 0).any():
-                        print(f"⚠️ Negative coords in GT: {boxes.min().item():.2f}")
-                    # optional sanity: assume image size 512x512
-                    if (boxes.max() < 2.0).item():
-                        print("⚠️ Boxes seem normalized (0–1), should be pixel coords")
-
             optim.zero_grad(set_to_none=True)
             with autocast(enabled=use_amp):
                 loss_dict = model(images, targets)          # dict of losses
                 losses = sum(loss_dict.values())
 
-            # ======================================================
+           # ======================================================
             # 🔍 DEBUG: inspect anchor generation for one sample
             # ======================================================
-            if epoch == 1 and torch.rand(1).item() < 0.02:  # occasionally sample
+            if epoch == 1:
                 model.eval()
                 with torch.no_grad():
-                    feats = model.backbone(images[0].unsqueeze(0))
-                    if isinstance(feats, dict):
-                        feats = list(feats.values())
-                    image_sizes = [images[0].shape[-2:]]
-                    anchors_per_img = model.rpn.anchor_generator(feats, image_sizes)[0]
-                    print(f"[Anchor Debug] Anchors generated: {anchors_per_img.shape}")
-                    print(f"[Anchor Debug] Coordinate range: "
-                        f"{anchors_per_img.min().item():.1f} → {anchors_per_img.max().item():.1f}")
+                    # 1. Transform and get features exactly as RPN expects
+                    images_t = model.transform(images)
+                    features = model.backbone(images_t.tensors)
+                    if isinstance(features, dict):
+                        features = list(features.values())
+
+                    # 2. Generate anchors using both image and features
+                    anchors = model.rpn.anchor_generator(images_t, features)
+                    print(f"[Anchor Debug] Generated anchors for {len(anchors)} images.")
+                    print(f"[Anchor Debug] Image 0: {anchors[0].shape}")
+                    print(f"[Anchor Debug] Coord range: {anchors[0].min().item():.1f} → {anchors[0].max().item():.1f}")
                 model.train()
             # ======================================================
 
