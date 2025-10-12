@@ -139,6 +139,7 @@ def main():
             optim.zero_grad(set_to_none=True)
             with autocast(enabled=use_amp):
                 loss_dict = model(images, targets)          # dict of losses
+                print("\nLoss dict:", loss_dict)
                 losses = sum(loss_dict.values())
 
            # ======================================================
@@ -160,8 +161,6 @@ def main():
             #         print(f"[Anchor Debug] Coord range: {anchors[0].min().item():.1f} → {anchors[0].max().item():.1f}")
             #     model.train()
             # ======================================================
-
-
 
             scaler.scale(losses).backward()
             scaler.step(optim)
@@ -216,7 +215,6 @@ def main():
                         })
 
                     metric.update(preds, gts)
-
 
           metrics = metric.compute()
           map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
