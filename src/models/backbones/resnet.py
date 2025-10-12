@@ -140,6 +140,7 @@ class ResNet(nn.Module):
         out = self.bn1(out)
         out = self.relu(out)
         out = self.maxpool(out)
+
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
@@ -245,6 +246,7 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
       config = ResNetBackboneConfig()
 
     backbone = ResNet(layers=(3, 4, 6, 3))
+    
     _load_pretrained_weights(backbone, config)
     _freeze_backbone_layers(backbone, config.trainable_layers)
 

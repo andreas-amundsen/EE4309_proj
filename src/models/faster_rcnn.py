@@ -102,6 +102,8 @@ def build_faster_rcnn(
 
     # RPN head
     num_anchors = anchor_generator.num_anchors_per_location()[0]
+    print("[faster_rcnn 105] Num Anchors:", num_anchors)
+    print("[faster_rcnn 106] Anchor list:", anchor_generator.num_anchors_per_location())
     rpn_head = rpn_head_factory(num_anchors)
 
     # Build the detector
