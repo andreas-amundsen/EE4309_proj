@@ -144,21 +144,21 @@ def main():
            # ======================================================
             # 🔍 DEBUG: inspect anchor generation for one sample
             # ======================================================
-            if epoch == 1:
-                model.eval()
-                with torch.no_grad():
-                    # 1. Transform and get features exactly as RPN expects
-                    images_t = model.transform(images)
-                    features = model.backbone(images_t.tensors)
-                    if isinstance(features, dict):
-                        features = list(features.values())
+            # if epoch == 1:
+            #     model.eval()
+            #     with torch.no_grad():
+            #         # 1. Transform and get features exactly as RPN expects
+            #         images_t = model.transform(images)
+            #         features = model.backbone(images_t.tensors)
+            #         if isinstance(features, dict):
+            #             features = list(features.values())
 
-                    # 2. Generate anchors using both image and features
-                    anchors = model.rpn.anchor_generator(images_t, features)
-                    print(f"[Anchor Debug] Generated anchors for {len(anchors)} images.")
-                    print(f"[Anchor Debug] Image 0: {anchors[0].shape}")
-                    print(f"[Anchor Debug] Coord range: {anchors[0].min().item():.1f} → {anchors[0].max().item():.1f}")
-                model.train()
+            #         # 2. Generate anchors using both image and features
+            #         anchors = model.rpn.anchor_generator(images_t, features)
+            #         print(f"[Anchor Debug] Generated anchors for {len(anchors)} images.")
+            #         print(f"[Anchor Debug] Image 0: {anchors[0].shape}")
+            #         print(f"[Anchor Debug] Coord range: {anchors[0].min().item():.1f} → {anchors[0].max().item():.1f}")
+            #     model.train()
             # ======================================================
 
 
@@ -175,6 +175,48 @@ def main():
         sched.step()
         avg_loss = loss_sum / len(train_loader)
         save_jsonl([{"epoch": epoch, "loss": avg_loss}], os.path.join(args.output, "logs.jsonl"))
+
+        ### MAP for training data
+
+        try:
+          from torchmetrics.detection.mean_ap import MeanAveragePrecision
+
+          model.eval()
+          metric = MeanAveragePrecision(iou_type="bbox")
+          with torch.no_grad():
+              for images, targets in train_loader:
+                    images = [img.to(device) for img in images]
+
+                    # Inference
+                    outputs = model(images)
+
+                    # torchmetrics expects CPU tensors
+                    preds = []
+                    for o in outputs:
+                        preds.append({
+                            "boxes": o["boxes"].detach().cpu(),
+                            "scores": o["scores"].detach().cpu(),
+                            "labels": o["labels"].detach().cpu(),
+                        })
+
+                    print("\n\nOutputs from training data", outputs)
+
+                    gts = []
+                    for t in targets:
+                        gts.append({
+                            "boxes": t["boxes"].detach().cpu(),
+                            "labels": t["labels"].detach().cpu(),
+                        })
+
+                    metric.update(preds, gts)
+
+          metrics = metric.compute()
+          map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
+          print("\n\nMap on training images:", map50)
+        except Exception as e:
+          print("Eval skipped due to:", e)
+          map50 = -1.0
+
 
         # ===== STUDENT TODO: Implement mAP evaluation =====
         # Hint: Implement validation loop to compute mAP@0.5:
