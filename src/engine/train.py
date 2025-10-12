@@ -152,35 +152,23 @@ def main():
                 loss_dict = model(images, targets)          # dict of losses
                 losses = sum(loss_dict.values())
 
-            # =====================================================
-            # 🔍 DEBUG: compare GT and predicted box coordinate scales
-            # =====================================================
-            try:
+            # ======================================================
+            # 🔍 DEBUG: inspect anchor generation for one sample
+            # ======================================================
+            if epoch == 1 and torch.rand(1).item() < 0.02:  # occasionally sample
                 model.eval()
                 with torch.no_grad():
-                    preds = model(images)
-
-                for b_idx, (pred, gt) in enumerate(zip(preds, targets)):
-                    if pred["boxes"].numel() > 0 and gt["boxes"].numel() > 0:
-                        pred_min, pred_max = pred["boxes"].min().item(), pred["boxes"].max().item()
-                        gt_min, gt_max = gt["boxes"].min().item(), gt["boxes"].max().item()
-
-                        # Compare average magnitude scale between GT and prediction boxes
-                        pred_scale = pred_max - pred_min
-                        gt_scale = gt_max - gt_min
-                        scale_ratio = pred_scale / (gt_scale + 1e-6)
-
-                        if scale_ratio < 0.5 or scale_ratio > 2.0:
-                            print(
-                                f"⚠️ [iter {b_idx}] Box scale mismatch: "
-                                f"GT({gt_min:.1f},{gt_max:.1f}) vs Pred({pred_min:.1f},{pred_max:.1f}), "
-                                f"ratio={scale_ratio:.2f}"
-                            )
-                    else:
-                        print(f"[iter {b_idx}] No boxes in GT or preds")
+                    feats = model.backbone(images[0].unsqueeze(0))
+                    if isinstance(feats, dict):
+                        feats = list(feats.values())
+                    image_sizes = [images[0].shape[-2:]]
+                    anchors_per_img = model.rpn.anchor_generator(feats, image_sizes)[0]
+                    print(f"[Anchor Debug] Anchors generated: {anchors_per_img.shape}")
+                    print(f"[Anchor Debug] Coordinate range: "
+                        f"{anchors_per_img.min().item():.1f} → {anchors_per_img.max().item():.1f}")
                 model.train()
-            except Exception as e:
-                print(f"(box scale debug skipped: {e})")
+            # ======================================================
+
 
 
             scaler.scale(losses).backward()
