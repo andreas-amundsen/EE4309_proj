@@ -99,6 +99,7 @@ def build_faster_rcnn(
     # 4. NB! not done explicitly: Replace the box predictor head for the correct number of classes
     # 5. Return the assembled model
 
+
     cfg = config or DetectorConfig()
 
     # override thresholds to guarantee that bmodel predicts something
