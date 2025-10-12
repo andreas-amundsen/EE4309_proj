@@ -161,6 +161,7 @@ def main():
         #    - Update metric with predictions and ground truth targets
         # 4. Compute final mAP and extract the "map" value
         # Handle exceptions gracefully and set map50 = -1.0 if evaluation fails
+        # testing temp_branch
         try:
           from torchmetrics.detection.mean_ap import MeanAveragePrecision
 
