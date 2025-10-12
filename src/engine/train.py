@@ -149,6 +149,37 @@ def main():
                 loss_dict = model(images, targets)          # dict of losses
                 losses = sum(loss_dict.values())
 
+            # =====================================================
+            # 🔍 DEBUG: compare GT and predicted box coordinate scales
+            # =====================================================
+            try:
+                model.eval()
+                with torch.no_grad():
+                    preds = model(images)
+
+                for b_idx, (pred, gt) in enumerate(zip(preds, targets)):
+                    if pred["boxes"].numel() > 0 and gt["boxes"].numel() > 0:
+                        pred_min, pred_max = pred["boxes"].min().item(), pred["boxes"].max().item()
+                        gt_min, gt_max = gt["boxes"].min().item(), gt["boxes"].max().item()
+
+                        # Compare average magnitude scale between GT and prediction boxes
+                        pred_scale = pred_max - pred_min
+                        gt_scale = gt_max - gt_min
+                        scale_ratio = pred_scale / (gt_scale + 1e-6)
+
+                        if scale_ratio < 0.5 or scale_ratio > 2.0:
+                            print(
+                                f"⚠️ [iter {b_idx}] Box scale mismatch: "
+                                f"GT({gt_min:.1f},{gt_max:.1f}) vs Pred({pred_min:.1f},{pred_max:.1f}), "
+                                f"ratio={scale_ratio:.2f}"
+                            )
+                    else:
+                        print(f"[iter {b_idx}] No boxes in GT or preds")
+                model.train()
+            except Exception as e:
+                print(f"(box scale debug skipped: {e})")
+
+
             scaler.scale(losses).backward()
             scaler.step(optim)
             scaler.update()
@@ -271,17 +302,17 @@ def main():
                 colors="red", width=2
             )
         
-        print("Checking test boxes for evaluation")
+        # print("Checking test boxes for evaluation")
 
-        if len(pred["boxes"]):
-            top_boxes = pred["boxes"][:3]  # print first 3 boxes for readability
-            top_scores = pred["scores"][:3]
-            print(f"[{i+1}] preds={len(pred['boxes'])}, "
-                f"max_score={pred['scores'].max().item():.2f}, "
-                f"sample_boxes={[b.tolist() for b in top_boxes]}, "
-                f"sample_scores={[round(s.item(), 2) for s in top_scores]}")
-        else:
-            print(f"[{i+1}] preds=0")
+        # if len(pred["boxes"]):
+        #     top_boxes = pred["boxes"][:3]  # print first 3 boxes for readability
+        #     top_scores = pred["scores"][:3]
+        #     print(f"[{i+1}] preds={len(pred['boxes'])}, "
+        #         f"max_score={pred['scores'].max().item():.2f}, "
+        #         f"sample_boxes={[b.tolist() for b in top_boxes]}, "
+        #         f"sample_scores={[round(s.item(), 2) for s in top_scores]}")
+        # else:
+        #     print(f"[{i+1}] preds=0")
 
 
         out_path = vis_dir / f"train_sample_{i+1}_vis.jpg"
