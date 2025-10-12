@@ -267,7 +267,7 @@ def main():
                         "labels": o["labels"].detach().cpu(),
                     })
 
-                print("\n\nOutputs from training data", outputs)
+                # print("\n\nOutputs from training data", outputs)
 
                 gts = []
                 for t in targets:
