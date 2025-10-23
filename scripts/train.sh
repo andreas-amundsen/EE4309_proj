@@ -22,8 +22,7 @@ echo "- Test set: reserved for final evaluation"
 echo ""
 
 # python3 -m src.engine.train \
-# python3 -m debugpy --listen 5678 --wait-for-client -m src.engine.train \
-python3 -m src.engine.train \
+python3 -m debugpy --listen 5678 --wait-for-client -m src.engine.train \
   --train-set trainval \
   --val-set trainval \
   --epochs "$EPOCHS" \
