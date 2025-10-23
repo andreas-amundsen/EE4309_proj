@@ -202,16 +202,11 @@ class Attention(nn.Module):
 
         attn_scores = (Q @ torch.transpose(K, -1, -2)) / math.sqrt(d_k)
         B, HN, N, _ = attn_scores.shape
-        Q_for_rel = Q.permute(0, 2, 1, 3).reshape(B*self.num_heads, H, W, d_k)
-
-
-        #attn_scores += add_decomposed_rel_pos(attn_scores, Q_for_rel, self.rel_pos_h, self.rel_pos_w, (H,W), (H,W))
         for h in range(self.num_heads):
-            Q_head = Q[:, h, :, :]  # shape (B, N, d_k)
+            Q_head = Q[:, h, :, :]
             attn_scores[:, h, :, :] += add_decomposed_rel_pos(
                 attn_scores[:, h, :, :], Q_head, self.rel_pos_h, self.rel_pos_w, (H, W), (H, W)
             )
-
         
         attn_weigths = torch.softmax(attn_scores, dim=-1)
         out = (attn_weigths @ V).transpose(1,2).reshape(B,H,W,C)
