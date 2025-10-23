@@ -49,6 +49,8 @@ def get_vit_fasterrcnn_model(
     # 5. Assemble final detector using build_faster_rcnn
     # This combines ViT features with Faster R-CNN detection framework
 
+    backbone_config = backbone_config or ViTBackboneConfig()
+
     backbone_module = build_vit_fpn_backbone(config=backbone_config)
     
     backbone = BackboneBundle(

@@ -652,6 +652,14 @@ def build_vit_backbone(config: Optional[ViTBackboneConfig] = None) -> ViT:
     if config.weights_path:
         state_dict = torch.load(config.weights_path, map_location="cpu")
         vit.load_state_dict(state_dict, strict=False)
+    
+    # Implemented by Andreas
+    else: 
+        from torchvision.models import vit_b_16, ViT_B_16_Weights
+        pretrained_vit = vit_b_16(weights=ViT_B_16_Weights.IMAGENET1K_V1)
+        vit.load_state_dict(pretrained_vit.state_dict(), strict=False)
+
+    ####
 
     if config.freeze_patch_embed:
         for param in vit.patch_embed.parameters():
