@@ -99,36 +99,23 @@ def build_faster_rcnn(
     # 4. NB! not done explicitly: Replace the box predictor head for the correct number of classes
     # 5. Return the assembled model
 
-
     cfg = config or DetectorConfig()
 
-    # # override thresholds to guarantee that bmodel predicts something
-    # cfg.box_score_thresh=0.0
-    # cfg.box_nms_thresh=0.5
-    # cfg.detections_per_img=300
-    # cfg.rpn_nms_thresh=0.6
-    # cfg.rpn_score_thresh=0.00
-    # #space
-
-    # RPN head
     num_anchors = anchor_generator.num_anchors_per_location()[0]
     rpn_head = rpn_head_factory(num_anchors)
 
-    # Build the detector
     model = FasterRCNN(
         backbone=backbone.body,
-        num_classes=num_classes,  # we'll set the box predictor below
+        num_classes=num_classes,
         rpn_anchor_generator=anchor_generator,
         rpn_head=rpn_head,
         box_roi_pool=roi_pool,
-        # RPN config
         rpn_pre_nms_top_n_train=cfg.rpn_pre_nms_top_n_train,
         rpn_pre_nms_top_n_test=cfg.rpn_pre_nms_top_n_test,
         rpn_post_nms_top_n_train=cfg.rpn_post_nms_top_n_train,
         rpn_post_nms_top_n_test=cfg.rpn_post_nms_top_n_test,
         rpn_nms_thresh=cfg.rpn_nms_thresh,
         rpn_score_thresh=cfg.rpn_score_thresh,
-        # ROI heads / box config
         box_score_thresh=cfg.box_score_thresh,
         box_nms_thresh=cfg.box_nms_thresh,
         box_detections_per_img=cfg.detections_per_img,

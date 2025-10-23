@@ -267,8 +267,7 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
         in_channels_list=in_channels_list,
         out_channels=config.out_channels,
     )
-    ### For debugging purposes
-    # Optional quick validation: run a dummy forward and print feature map shapes.
+    ### For debugging purpose
     if True:
         try:
             backbone_with_fpn.eval()
