@@ -243,7 +243,10 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
     # 4. Create and return BackboneWithFPN with all components
     # This integrates ResNet feature extraction with FPN multi-scale features
     if config is None:
-      config = ResNetBackboneConfig()
+        config = ResNetBackboneConfig()
+    
+    config.pretrained = True
+    config.weights = "IMAGENET1K_V1"
 
     backbone = ResNet(layers=(3, 4, 6, 3), num_classes=1000)
 
