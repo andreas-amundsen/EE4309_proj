@@ -38,3 +38,5 @@ python3 -m debugpy --listen 5678 --wait-for-client -m src.engine.train \
   --val-subset-size 500
 
 echo "✅ Training completed! Check results in $OUTPUT/"
+
+# hei
