@@ -136,35 +136,10 @@ def main():
                 for t in targets
             ]
 
-            # print("Len of targets:", len(targets))
-            # print("Targets object", targets)
-
             optim.zero_grad(set_to_none=True)
             with autocast(enabled=use_amp):
                 loss_dict = model(images, targets) # dict of losses
-                # if i==7:         
-                    # print("\nLoss box reg:", loss_dict['loss_box_reg'])
                 losses = sum(loss_dict.values())
-
-           # ======================================================
-            # 🔍 DEBUG: inspect anchor generation for one sample
-            # ======================================================
-            # if epoch == 1:
-            #     model.eval()
-            #     with torch.no_grad():
-            #         # 1. Transform and get features exactly as RPN expects
-            #         images_t = model.transform(images)
-            #         features = model.backbone(images_t.tensors)
-            #         if isinstance(features, dict):
-            #             features = list(features.values())
-
-            #         # 2. Generate anchors using both image and features
-            #         anchors = model.rpn.anchor_generator(images_t, features)
-            #         print(f"[Anchor Debug] Generated anchors for {len(anchors)} images.")
-            #         print(f"[Anchor Debug] Image 0: {anchors[0].shape}")
-            #         print(f"[Anchor Debug] Coord range: {anchors[0].min().item():.1f} → {anchors[0].max().item():.1f}")
-            #     model.train()
-            # ======================================================
 
             scaler.scale(losses).backward()
             scaler.step(optim)
@@ -329,19 +304,6 @@ def main():
                 colors="red", width=2
             )
         
-        # print("Checking test boxes for evaluation")
-
-        # if len(pred["boxes"]):
-        #     top_boxes = pred["boxes"][:3]  # print first 3 boxes for readability
-        #     top_scores = pred["scores"][:3]
-        #     print(f"[{i+1}] preds={len(pred['boxes'])}, "
-        #         f"max_score={pred['scores'].max().item():.2f}, "
-        #         f"sample_boxes={[b.tolist() for b in top_boxes]}, "
-        #         f"sample_scores={[round(s.item(), 2) for s in top_scores]}")
-        # else:
-        #     print(f"[{i+1}] preds=0")
-
-
         out_path = vis_dir / f"train_sample_{i+1}_vis.jpg"
         to_pil_image(canvas).save(out_path)
         print(f"✅ Saved training visualization to {out_path}")

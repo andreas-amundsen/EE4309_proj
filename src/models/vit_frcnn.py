@@ -48,5 +48,39 @@ def get_vit_fasterrcnn_model(
     # 4. Configure detection parameters in DetectorConfig
     # 5. Assemble final detector using build_faster_rcnn
     # This combines ViT features with Faster R-CNN detection framework
+
+    backbone_module = build_vit_fpn_backbone(config=backbone_config)
+    
+    backbone = BackboneBundle(
+        body=backbone_module,
+        featmap_names=backbone_module._out_features,
+        out_channels=backbone_module.out_channels,
+    )
+
+    anchor_generator = AnchorGenerator(sizes=DEFAULT_ANCHOR_SIZES, aspect_ratios=DEFAULT_ASPECT_RATIOS)
+    rpn_head_factory = make_standard_rpn_head(in_channels=backbone.out_channels)
+    roi_pool = MultiScaleRoIAlign(featmap_names=backbone.featmap_names, output_size=7, sampling_ratio=2)
+
+    detector_config = DetectorConfig(
+        box_score_thresh=box_score_thresh,
+        box_nms_thresh=box_nms_thresh,
+        detections_per_img=detections_per_img,
+        rpn_pre_nms_top_n_train=rpn_pre_nms_top_n_train,
+        rpn_pre_nms_top_n_test=rpn_pre_nms_top_n_test,
+        rpn_post_nms_top_n_train=rpn_post_nms_top_n_train,
+        rpn_post_nms_top_n_test=rpn_post_nms_top_n_test,
+        rpn_nms_thresh=rpn_nms_thresh,
+        rpn_score_thresh=rpn_score_thresh,
+    )
+
+    return build_faster_rcnn(
+        backbone=backbone,
+        anchor_generator=anchor_generator, 
+        rpn_head_factory=rpn_head_factory, 
+        roi_pool=roi_pool, 
+        num_classes=num_classes,
+        config=detector_config,
+        
+    )
     raise NotImplementedError("get_vit_fasterrcnn_model() not implemented")
     # ================================================================
