@@ -84,8 +84,6 @@ class PatchEmbed(nn.Module):
         x = x.permute(0, 2, 3, 1).contiguous()
         
         return x
-
-        raise NotImplementedError("PatchEmbed.forward() not implemented")
         # ===================================================
 
 
@@ -202,22 +200,16 @@ class Attention(nn.Module):
 
         attn_scores = (Q @ torch.transpose(K, -1, -2)) / math.sqrt(d_k)
         B, HN, N, _ = attn_scores.shape
-        Q_for_rel = Q.permute(0, 2, 1, 3).reshape(B*self.num_heads, H, W, d_k)
-
-
-        #attn_scores += add_decomposed_rel_pos(attn_scores, Q_for_rel, self.rel_pos_h, self.rel_pos_w, (H,W), (H,W))
         for h in range(self.num_heads):
-            Q_head = Q[:, h, :, :]  # shape (B, N, d_k)
+            Q_head = Q[:, h, :, :]
             attn_scores[:, h, :, :] += add_decomposed_rel_pos(
                 attn_scores[:, h, :, :], Q_head, self.rel_pos_h, self.rel_pos_w, (H, W), (H, W)
             )
-
         
         attn_weigths = torch.softmax(attn_scores, dim=-1)
         out = (attn_weigths @ V).transpose(1,2).reshape(B,H,W,C)
         self.proj(out)
         return out
-        raise NotImplementedError("Attention.forward() not implemented")
         # ==========================================================
 
 
@@ -312,8 +304,6 @@ class Block(nn.Module):
         x = identity2 + self.drop_path(x)
 
         return x
-
-        raise NotImplementedError("Block.forward() not implemented")
         # ==========================================================
 
 
@@ -343,8 +333,6 @@ def get_abs_pos(abs_pos: torch.Tensor, hw: Tuple[int, int], has_cls_token: bool 
     abs_pos = abs_pos.permute(0, 2, 3, 1).contiguous()
 
     return abs_pos
-
-    raise NotImplementedError("get_abs_pos() not implemented")
     # ==============================================================
 
 
@@ -435,7 +423,10 @@ class ViT(nn.Module):
         # Note: Output should be a dict with the feature name as key
         x = self.patch_embed(x)
 
-        pos_embed = get_abs_pos(abs_pos=self.pos_embed, hw=(x.shape[1], x.shape[2]), has_cls_token=False)
+        B, H, W, C = x.shape
+
+
+        pos_embed = get_abs_pos(abs_pos=self.pos_embed, hw=(H, W), has_cls_token=False)
         x = x + pos_embed
 
         for block in self.blocks:
@@ -444,8 +435,6 @@ class ViT(nn.Module):
         x = x.permute(0, 3, 1, 2).contiguous()
 
         return {self._out_features[0]: x}
-
-        raise NotImplementedError("ViT.forward() not implemented")
         # ========================================================
 
     def output_shape(self) -> dict[str, ShapeSpec]:
@@ -605,8 +594,6 @@ class SimpleFeaturePyramid(nn.Module):
             output_features['p6'] = F.max_pool2d(output_features['p5'], kernel_size=1, stride=2)
 
         return output_features
-
-        raise NotImplementedError("SimpleFeaturePyramid.forward() not implemented")
         # ============================================================
 
 
@@ -657,6 +644,14 @@ def build_vit_backbone(config: Optional[ViTBackboneConfig] = None) -> ViT:
     if config.weights_path:
         state_dict = torch.load(config.weights_path, map_location="cpu")
         vit.load_state_dict(state_dict, strict=False)
+    
+    # Implemented by student: Load pretrained weights (imagenet) from torchvision
+    # else: 
+    #     from torchvision.models import vit_b_16, ViT_B_16_Weights
+    #     pretrained_vit = vit_b_16(weights=ViT_B_16_Weights.IMAGENET1K_V1)
+    #     vit.load_state_dict(pretrained_vit.state_dict(), strict=False)
+
+    ####
 
     if config.freeze_patch_embed:
         for param in vit.patch_embed.parameters():

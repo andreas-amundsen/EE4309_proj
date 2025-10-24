@@ -49,7 +49,6 @@ def main():
         for images, targets in tqdm(dl, ncols=100, desc="eval"):
             images = [img.to(device) for img in images]
             outputs = model(images)
-            # print(f"Predicted boxes: {len(outputs[0]['boxes'])},  max_score={outputs[0]['scores'].max().item() if len(outputs[0]['scores'])>0 else 0:.3f}")
             # accumulate metrics for all items in the batch
             for out, tgt in zip(outputs, targets):
                 metric.update(

@@ -3,12 +3,13 @@ import os, argparse, time
 from pathlib import Path
 from typing import Dict
 import torch
+import json
+
 from torch.utils.data import DataLoader
 from torch.optim import SGD
 from torch.optim.lr_scheduler import StepLR
 from torch.cuda.amp import autocast, GradScaler
 from tqdm import tqdm
-
 
 
 from src.datasets.voc import VOCDataset, collate_fn
@@ -37,6 +38,13 @@ def get_args():
     ap.add_argument("--val-subset-size", type=int, default=None)
 
     return ap.parse_args()
+
+
+def save_jsonl(data, filename):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, 'a') as f:
+        for entry in data:
+            f.write(json.dumps(entry) + '\n')
 
 
 def main():
@@ -114,15 +122,37 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     best_map = -1.0
 
-    for epoch in range(1, args.epochs + 1):
+    # Load model weights from checkpoint if checkpoint exist
+    start_epoch = 1
+
+    base_path = '/content/drive/MyDrive/EE4309-project/'
+    drive_path = os.path.join(base_path, f'{args.model}_LR-{args.lr}_BS-{args.batch_size}_NW-{args.num_workers}_not_pretrained/')
+    weight_file_path = os.path.join(drive_path, "last.pt")
+    logs_file_path = os.path.join(drive_path, "logs.jsonl")
+    
+    if os.path.exists(logs_file_path) and os.path.getsize(logs_file_path) > 0:
+        with open(logs_file_path, 'r') as f:
+            lines = f.readlines()
+            if len(lines) > 0:
+                start_epoch = json.loads(lines[-1])["epoch"] + 1
+                if os.path.exists(weight_file_path):
+                    ckpt = torch.load(weight_file_path, map_location=device)
+                    model.load_state_dict(ckpt["model"])
+                    print(f"Resumed training from epoch {start_epoch} using weights from {weight_file_path}")
+                else:
+                    raise(f"⚠️ Aborted execution: Checkpoint file {weight_file_path} not found, although log files excist at {logs_file_path}.")
+            else:
+                print("⚠️ Log-file found, but it is empty: Starting training from scratch.")
+    else:
+        print("No existing checkpoint found, starting training from scratch.")
+    # ===============================================================
+
+    for epoch in range(start_epoch, args.epochs + 1):
         model.train()
         pbar = tqdm(train_loader, ncols=100, desc=f"train[{epoch}/{args.epochs}]")
         loss_sum = 0.0
 
-        i = 0
-
         for images, targets in pbar:
-            i +=1
             # ===== STUDENT TODO: Implement training step =====
             # Hint: Complete the training loop:
             # 1. Use autocast context for mixed precision if enabled
@@ -144,7 +174,6 @@ def main():
             scaler.scale(losses).backward()
             scaler.step(optim)
             scaler.update()
-            # raise NotImplementedError("Training step not implemented")
             # ==================================================
 
             loss_sum += losses.item()
@@ -152,8 +181,6 @@ def main():
 
         sched.step()
         avg_loss = loss_sum / len(train_loader)
-        save_jsonl([{"epoch": epoch, "loss": avg_loss}], os.path.join(args.output, "logs.jsonl"))
-
 
         # ===== STUDENT TODO: Implement mAP evaluation =====
         # Hint: Implement validation loop to compute mAP@0.5:
@@ -174,10 +201,9 @@ def main():
               for images, targets in val_loader:
                     images = [img.to(device) for img in images]
 
-                    # Inference
                     outputs = model(images)
 
-                    # torchmetrics expects CPU tensors
+                    # Torchmetrics expects CPU tensors
                     preds = []
                     for o in outputs:
                         preds.append({
@@ -201,6 +227,15 @@ def main():
           print("Eval skipped due to:", e)
           map50 = -1.0
 
+        # Save logs to colab and private disk
+        json_compatible_loss_dict = {k: v.item() for k, v in loss_dict.items()}
+        save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50":map50, "loss_dict": json_compatible_loss_dict}], os.path.join(args.output, "logs.jsonl"))
+
+        if os.path.exists(base_path):
+            save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50": map50, "loss_dict": json_compatible_loss_dict}], logs_file_path)
+            print(f"Saved logs to {logs_file_path}")
+        else:
+            print(f"⚠️ Could not save log file to disk, since path could not be found: {base_path}.")
         # ====================================================
 
         is_best = map50 > best_map
@@ -215,100 +250,16 @@ def main():
             "args": vars(args),
         }
         torch.save(ckpt, os.path.join(args.output, "last.pt"))
+
         if is_best:
             torch.save(ckpt, os.path.join(args.output, "best.pt"))
         print(f"[epoch {epoch}] avg_loss={avg_loss:.4f}  mAP@0.5={map50:.4f}  best={best_map:.4f}")
 
-    ### MAP for training data
-
-    # try:
-    #     from torchmetrics.detection.mean_ap import MeanAveragePrecision
-
-    #     model.eval()
-    #     metric = MeanAveragePrecision(iou_type="bbox",  iou_thresholds=[0.5], class_metrics=True)
-    #     with torch.no_grad():
-    #         for images, targets in train_loader:
-    #             images = [img.to(device) for img in images]
-
-    #             # Inference
-    #             outputs = model(images)
-
-    #             # torchmetrics expects CPU tensors
-    #             preds = []
-    #             for o in outputs:
-    #                 preds.append({
-    #                     "boxes": o["boxes"].detach().cpu(),
-    #                     "scores": o["scores"].detach().cpu(),
-    #                     "labels": o["labels"].detach().cpu(),
-    #                 })
-
-    #             # print("\n\nOutputs from training data", outputs)
-
-    #             gts = []
-    #             for t in targets:
-    #                 gts.append({
-    #                     "boxes": t["boxes"].detach().cpu(),
-    #                     "labels": t["labels"].detach().cpu(),
-    #                 })
-
-    #             metric.update(preds, gts)
-
-    #     metrics = metric.compute()
-    #     map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
-    #     print("\n\nMap on training images:", map50)
-    # except Exception as e:
-    #     print("Eval skipped due to:", e)
-    #     map50 = -1.0
-
-    ## Added by Andreas for debugging
-    from torchvision.transforms.functional import to_pil_image, resize
-    import random
-    import torchvision
-
-    # pick 5 random indices
-    num_samples = 5
-    indices = list(range(len(train_set) - num_samples, len(train_set)))
-
-    vis_dir = Path(args.output) / "train_vis"
-    vis_dir.mkdir(parents=True, exist_ok=True)
-
-    for i, idx in enumerate(indices):
-        img, target = train_set[idx]
-        img_tensor = img.to(device).unsqueeze(0)
-
-        with torch.no_grad():
-            output = model(img_tensor)[0]
-
-        img_cpu = img.detach().cpu()
-        pred = {k: v.detach().cpu() for k, v in output.items()}
-        gt = {k: v.detach().cpu() for k, v in target.items()}
-
-        # resize and convert to uint8
-        canvas = (img_cpu * 255).byte()
-
-        # draw ground-truth boxes
-        if gt["boxes"].numel() > 0:
-            canvas = torchvision.utils.draw_bounding_boxes(
-                canvas, gt["boxes"],
-                labels=["GT"] * gt["boxes"].shape[0],
-                colors="green", width=2
-            )
-
-        # draw predicted boxes
-        if pred["boxes"].numel() > 0:
-            boxes = pred["boxes"]
-            scores = pred["scores"]
-            canvas = torchvision.utils.draw_bounding_boxes(
-                canvas, boxes,
-                labels=[f"{s:.2f}" for s in scores],
-                colors="red", width=2
-            )
-        
-        out_path = vis_dir / f"train_sample_{i+1}_vis.jpg"
-        to_pil_image(canvas).save(out_path)
-        print(f"✅ Saved training visualization to {out_path}")
-
-        # ===============================
+        # Save best.pt and last.pt to Drive to enable checkpoint recovery
+        if os.path.exists(drive_path):
+            torch.save(ckpt, os.path.join(drive_path, "last.pt"))
+            if is_best:
+                torch.save(ckpt, os.path.join(drive_path, "best.pt"))
 
 if __name__ == "__main__":
     main()

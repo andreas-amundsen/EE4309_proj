@@ -21,13 +21,13 @@ echo "- Val samples: 500 (from index 2000-2499)"
 echo "- Test set: reserved for final evaluation"
 echo ""
 
-# python3 -m src.engine.train \
-python3 -m debugpy --listen 5678 --wait-for-client -m src.engine.train \
+# python3 -m debugpy --listen 5678 --wait-for-client -m src.engine.train \
+python3 -m src.engine.train \
   --train-set trainval \
   --val-set trainval \
   --epochs "$EPOCHS" \
   --batch-size "$BATCH_SIZE" \
-  --lr 0.002 \
+  --lr 0.05 \
   --weight-decay 1e-4 \
   --momentum 0.9 \
   --num-workers 4 \
