@@ -3,12 +3,16 @@ import os, argparse, time
 from pathlib import Path
 from typing import Dict
 import torch
+
+# Added by student
+import json
+# ===============================================
+
 from torch.utils.data import DataLoader
 from torch.optim import SGD
 from torch.optim.lr_scheduler import StepLR
 from torch.cuda.amp import autocast, GradScaler
 from tqdm import tqdm
-
 
 
 from src.datasets.voc import VOCDataset, collate_fn
@@ -38,6 +42,13 @@ def get_args():
 
     return ap.parse_args()
 
+# Implemented by student:
+def save_jsonl(data, filename):
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, 'a') as f:
+        for entry in data:
+            f.write(json.dumps(entry) + '\n')
+# ===============================================================
 
 def main():
     args = get_args()
@@ -114,7 +125,27 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     best_map = -1.0
 
-    for epoch in range(1, args.epochs + 1):
+    # Implemented by student: Handle resuming from checkpoint if exists
+    last_epoch = 1
+
+    base_path = '/content/drive/MyDrive/EE4309-project/'
+    drive_path = os.path.join(base_path, f'{args.model}_not_trained/')
+    weight_file_path = os.path.join(drive_path, "last.pt")
+    logs_file_path = os.path.join(drive_path, "logs.jsonl")
+    
+    if os.path.exists(logs_file_path) and os.path.getsize(logs_file_path) > 0:
+        with open(logs_file_path, 'r') as f:
+            lines = f.readlines()
+            if len(lines) > 0:
+                last_epoch = json.loads(lines[-1])["epoch"]
+
+            model.load_state_dict(torch.load(weight_file_path))
+            print(f"Resumed training from epoch {last_epoch} using weights from {weight_file_path}")
+    else:
+        print("No existing checkpoint found, starting training from scratch.")
+    # ===============================================================
+
+    for epoch in range(last_epoch, args.epochs + 1):
         model.train()
         pbar = tqdm(train_loader, ncols=100, desc=f"train[{epoch}/{args.epochs}]")
         loss_sum = 0.0
@@ -201,7 +232,17 @@ def main():
           print("Eval skipped due to:", e)
           map50 = -1.0
 
+        # Save logs in colab
         save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50":map50, "loss_dict": loss_dict, }], os.path.join(args.output, "logs.jsonl"))
+
+        # Save logs to private drive, NB! Hard coded file path
+
+        # Only try to write if base path exists (meaning Drive is mounted)
+        if os.path.exists(base_path):
+            save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50": map50, "loss_dict": loss_dict}], logs_file_path)
+            print(f"Saved logs to {logs_file_path}")
+        else:
+            print(f"⚠️ Could not save log file, since path could not be found: {base_path}.")
         # ====================================================
 
         is_best = map50 > best_map
@@ -216,9 +257,18 @@ def main():
             "args": vars(args),
         }
         torch.save(ckpt, os.path.join(args.output, "last.pt"))
+
         if is_best:
             torch.save(ckpt, os.path.join(args.output, "best.pt"))
         print(f"[epoch {epoch}] avg_loss={avg_loss:.4f}  mAP@0.5={map50:.4f}  best={best_map:.4f}")
+
+        # Implemented by student: Also save to Drive if available
+        if os.path.exists(drive_path):
+            torch.save(ckpt, os.path.join(drive_path, "last.pt"))
+            if is_best:
+                torch.save(ckpt, os.path.join(drive_path, "best.pt"))
+
+        # ===============================================
 
     # ## Plot classification on some training samples
     # from torchvision.transforms.functional import to_pil_image, resize
