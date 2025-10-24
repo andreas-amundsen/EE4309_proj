@@ -125,6 +125,7 @@ def main():
     # Load model weights from checkpoint if checkpoint exist
     start_epoch = 1
 
+    # NB! Pretrained/not_pretrained is hard-coded in weight_file_path
     base_path = '/content/drive/MyDrive/EE4309-project/'
     drive_path = os.path.join(base_path, f'{args.model}_LR-{args.lr}_BS-{args.batch_size}_NW-{args.num_workers}_not_pretrained/')
     weight_file_path = os.path.join(drive_path, "last.pt")
