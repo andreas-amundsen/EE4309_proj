@@ -129,7 +129,7 @@ def main():
     start_epoch = 1
 
     base_path = '/content/drive/MyDrive/EE4309-project/'
-    drive_path = os.path.join(base_path, f'{args.model}_not_pretrained/')
+    drive_path = os.path.join(base_path, f'{args.model}_LR-{args.lr}_BS-{args.batch_size}_NW-{args.num_workers}_not_pretrained/')
     weight_file_path = os.path.join(drive_path, "last.pt")
     logs_file_path = os.path.join(drive_path, "logs.jsonl")
     
