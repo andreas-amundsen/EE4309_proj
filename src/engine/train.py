@@ -126,10 +126,10 @@ def main():
     best_map = -1.0
 
     # Implemented by student: Handle resuming from checkpoint if exists
-    last_epoch = 1
+    start_epoch = 1
 
     base_path = '/content/drive/MyDrive/EE4309-project/'
-    drive_path = os.path.join(base_path, f'{args.model}_not_trained/')
+    drive_path = os.path.join(base_path, f'{args.model}_not_pretrained/')
     weight_file_path = os.path.join(drive_path, "last.pt")
     logs_file_path = os.path.join(drive_path, "logs.jsonl")
     
@@ -137,14 +137,20 @@ def main():
         with open(logs_file_path, 'r') as f:
             lines = f.readlines()
             if len(lines) > 0:
-                last_epoch = json.loads(lines[-1])["epoch"]
-                model.load_state_dict(torch.load(weight_file_path))
-                print(f"Resumed training from epoch {last_epoch} using weights from {weight_file_path}")
+                start_epoch = json.loads(lines[-1])["epoch"] + 1
+                if os.path.exists(weight_file_path):
+                    ckpt = torch.load(weight_file_path, map_location=device)
+                    model.load_state_dict(ckpt["model"])
+                    print(f"Resumed training from epoch {start_epoch} using weights from {weight_file_path}")
+                else:
+                    raise(f"⚠️ Aborted execution: Checkpoint file {weight_file_path} not found, although log files excist at {logs_file_path}.")
+            else:
+                print("⚠️ Log-file found, but it is empty: Starting training from scratch.")
     else:
         print("No existing checkpoint found, starting training from scratch.")
     # ===============================================================
 
-    for epoch in range(last_epoch, args.epochs + 1):
+    for epoch in range(start_epoch, args.epochs + 1):
         model.train()
         pbar = tqdm(train_loader, ncols=100, desc=f"train[{epoch}/{args.epochs}]")
         loss_sum = 0.0
