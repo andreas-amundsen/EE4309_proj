@@ -153,6 +153,3 @@ inference_results/
 
 # CUDA cache
 .nv/
-
-# Added by Andreas
-scripts/train.sh
