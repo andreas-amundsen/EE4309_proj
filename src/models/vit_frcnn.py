@@ -84,5 +84,4 @@ def get_vit_fasterrcnn_model(
         config=detector_config,
         
     )
-    raise NotImplementedError("get_vit_fasterrcnn_model() not implemented")
     # ================================================================

@@ -84,8 +84,6 @@ class PatchEmbed(nn.Module):
         x = x.permute(0, 2, 3, 1).contiguous()
         
         return x
-
-        raise NotImplementedError("PatchEmbed.forward() not implemented")
         # ===================================================
 
 
@@ -212,7 +210,6 @@ class Attention(nn.Module):
         out = (attn_weigths @ V).transpose(1,2).reshape(B,H,W,C)
         self.proj(out)
         return out
-        raise NotImplementedError("Attention.forward() not implemented")
         # ==========================================================
 
 
@@ -307,8 +304,6 @@ class Block(nn.Module):
         x = identity2 + self.drop_path(x)
 
         return x
-
-        raise NotImplementedError("Block.forward() not implemented")
         # ==========================================================
 
 
@@ -338,8 +333,6 @@ def get_abs_pos(abs_pos: torch.Tensor, hw: Tuple[int, int], has_cls_token: bool 
     abs_pos = abs_pos.permute(0, 2, 3, 1).contiguous()
 
     return abs_pos
-
-    raise NotImplementedError("get_abs_pos() not implemented")
     # ==============================================================
 
 
@@ -442,8 +435,6 @@ class ViT(nn.Module):
         x = x.permute(0, 3, 1, 2).contiguous()
 
         return {self._out_features[0]: x}
-
-        raise NotImplementedError("ViT.forward() not implemented")
         # ========================================================
 
     def output_shape(self) -> dict[str, ShapeSpec]:
@@ -603,8 +594,6 @@ class SimpleFeaturePyramid(nn.Module):
             output_features['p6'] = F.max_pool2d(output_features['p5'], kernel_size=1, stride=2)
 
         return output_features
-
-        raise NotImplementedError("SimpleFeaturePyramid.forward() not implemented")
         # ============================================================
 
 

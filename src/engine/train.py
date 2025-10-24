@@ -177,8 +177,6 @@ def main():
             scaler.scale(losses).backward()
             scaler.step(optim)
             scaler.update()
-
-            # raise NotImplementedError("Training step not implemented")
             # ==================================================
 
             loss_sum += losses.item()
@@ -186,10 +184,6 @@ def main():
 
         sched.step()
         avg_loss = loss_sum / len(train_loader)
-        
-        # Replaced by log further down that includes map50
-        # save_jsonl([{"epoch": epoch, "loss": avg_loss, "loss_dict": loss_dict, }], os.path.join(args.output, "logs.jsonl"))
-
 
         # ===== STUDENT TODO: Implement mAP evaluation =====
         # Hint: Implement validation loop to compute mAP@0.5:
@@ -241,8 +235,6 @@ def main():
         # Save logs in colab
         save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50":map50, "loss_dict": json_compatible_loss_dict}], os.path.join(args.output, "logs.jsonl"))
 
-        # Save logs to private drive, NB! Hard coded file path
-
         # Only try to write if base path exists (meaning Drive is mounted)
         if os.path.exists(base_path):
             save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50": map50, "loss_dict": json_compatible_loss_dict}], logs_file_path)
@@ -275,56 +267,6 @@ def main():
                 torch.save(ckpt, os.path.join(drive_path, "best.pt"))
 
         # ===============================================
-
-    # ## Plot classification on some training samples
-    # from torchvision.transforms.functional import to_pil_image, resize
-    # import random
-    # import torchvision
-
-    # # pick 5 random indices
-    # num_samples = 5
-    # indices = list(range(len(train_set) - num_samples, len(train_set)))
-
-    # vis_dir = Path(args.output) / "train_vis"
-    # vis_dir.mkdir(parents=True, exist_ok=True)
-
-    # for i, idx in enumerate(indices):
-    #     img, target = train_set[idx]
-    #     img_tensor = img.to(device).unsqueeze(0)
-
-    #     with torch.no_grad():
-    #         output = model(img_tensor)[0]
-
-    #     img_cpu = img.detach().cpu()
-    #     pred = {k: v.detach().cpu() for k, v in output.items()}
-    #     gt = {k: v.detach().cpu() for k, v in target.items()}
-
-    #     # resize and convert to uint8
-    #     canvas = (img_cpu * 255).byte()
-
-    #     # draw ground-truth boxes
-    #     if gt["boxes"].numel() > 0:
-    #         canvas = torchvision.utils.draw_bounding_boxes(
-    #             canvas, gt["boxes"],
-    #             labels=["GT"] * gt["boxes"].shape[0],
-    #             colors="green", width=2
-    #         )
-
-    #     # draw predicted boxes
-    #     if pred["boxes"].numel() > 0:
-    #         boxes = pred["boxes"]
-    #         scores = pred["scores"]
-    #         canvas = torchvision.utils.draw_bounding_boxes(
-    #             canvas, boxes,
-    #             labels=[f"{s:.2f}" for s in scores],
-    #             colors="red", width=2
-    #         )
-        
-    #     out_path = vis_dir / f"train_sample_{i+1}_vis.jpg"
-    #     to_pil_image(canvas).save(out_path)
-    #     print(f"✅ Saved training visualization to {out_path}")
-
-    #     # ===============================
 
 if __name__ == "__main__":
     main()

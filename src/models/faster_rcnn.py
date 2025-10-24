@@ -125,7 +125,6 @@ def build_faster_rcnn(
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
     return model
-    raise NotImplementedError("build_faster_rcnn() not implemented")
     # =========================================================
 
 

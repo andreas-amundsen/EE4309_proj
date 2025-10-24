@@ -85,7 +85,6 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
 
         return out
-        raise NotImplementedError("Bottleneck.forward() not implemented")
         # =============================================================
 
 
@@ -151,7 +150,6 @@ class ResNet(nn.Module):
         out = self.fc(out)
 
         return out
-        raise NotImplementedError("ResNet.forward() not implemented")
         # ========================================================
 
 
@@ -188,7 +186,6 @@ class BackboneWithFPN(nn.Module):
         feature_pyramid = self.fpn(features) # dict {level-idx: tensor}
 
         return feature_pyramid
-        raise NotImplementedError("BackboneWithFPN.forward() not implemented")
         # =================================================================
 
 
@@ -299,7 +296,6 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
     #         print(f"WARNING: validation forward pass failed: {_e}")
 
     return backbone_with_fpn
-    raise NotImplementedError("build_resnet50_fpn_backbone() not implemented")
     # ===================================================================
 
 
