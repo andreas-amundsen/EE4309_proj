@@ -119,10 +119,7 @@ def main():
         pbar = tqdm(train_loader, ncols=100, desc=f"train[{epoch}/{args.epochs}]")
         loss_sum = 0.0
 
-        i = 0
-
         for images, targets in pbar:
-            i +=1
             # ===== STUDENT TODO: Implement training step =====
             # Hint: Complete the training loop:
             # 1. Use autocast context for mixed precision if enabled
@@ -144,6 +141,7 @@ def main():
             scaler.scale(losses).backward()
             scaler.step(optim)
             scaler.update()
+
             # raise NotImplementedError("Training step not implemented")
             # ==================================================
 
@@ -152,7 +150,9 @@ def main():
 
         sched.step()
         avg_loss = loss_sum / len(train_loader)
-        save_jsonl([{"epoch": epoch, "loss": avg_loss}], os.path.join(args.output, "logs.jsonl"))
+        
+        # Replaced by log further down that includes map50
+        # save_jsonl([{"epoch": epoch, "loss": avg_loss, "loss_dict": loss_dict, }], os.path.join(args.output, "logs.jsonl"))
 
 
         # ===== STUDENT TODO: Implement mAP evaluation =====
@@ -201,6 +201,7 @@ def main():
           print("Eval skipped due to:", e)
           map50 = -1.0
 
+        save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50":map50, "loss_dict": loss_dict, }], os.path.join(args.output, "logs.jsonl"))
         # ====================================================
 
         is_best = map50 > best_map
@@ -219,96 +220,55 @@ def main():
             torch.save(ckpt, os.path.join(args.output, "best.pt"))
         print(f"[epoch {epoch}] avg_loss={avg_loss:.4f}  mAP@0.5={map50:.4f}  best={best_map:.4f}")
 
-    ### MAP for training data
+    # ## Plot classification on some training samples
+    # from torchvision.transforms.functional import to_pil_image, resize
+    # import random
+    # import torchvision
 
-    # try:
-    #     from torchmetrics.detection.mean_ap import MeanAveragePrecision
+    # # pick 5 random indices
+    # num_samples = 5
+    # indices = list(range(len(train_set) - num_samples, len(train_set)))
 
-    #     model.eval()
-    #     metric = MeanAveragePrecision(iou_type="bbox",  iou_thresholds=[0.5], class_metrics=True)
+    # vis_dir = Path(args.output) / "train_vis"
+    # vis_dir.mkdir(parents=True, exist_ok=True)
+
+    # for i, idx in enumerate(indices):
+    #     img, target = train_set[idx]
+    #     img_tensor = img.to(device).unsqueeze(0)
+
     #     with torch.no_grad():
-    #         for images, targets in train_loader:
-    #             images = [img.to(device) for img in images]
+    #         output = model(img_tensor)[0]
 
-    #             # Inference
-    #             outputs = model(images)
+    #     img_cpu = img.detach().cpu()
+    #     pred = {k: v.detach().cpu() for k, v in output.items()}
+    #     gt = {k: v.detach().cpu() for k, v in target.items()}
 
-    #             # torchmetrics expects CPU tensors
-    #             preds = []
-    #             for o in outputs:
-    #                 preds.append({
-    #                     "boxes": o["boxes"].detach().cpu(),
-    #                     "scores": o["scores"].detach().cpu(),
-    #                     "labels": o["labels"].detach().cpu(),
-    #                 })
+    #     # resize and convert to uint8
+    #     canvas = (img_cpu * 255).byte()
 
-    #             # print("\n\nOutputs from training data", outputs)
+    #     # draw ground-truth boxes
+    #     if gt["boxes"].numel() > 0:
+    #         canvas = torchvision.utils.draw_bounding_boxes(
+    #             canvas, gt["boxes"],
+    #             labels=["GT"] * gt["boxes"].shape[0],
+    #             colors="green", width=2
+    #         )
 
-    #             gts = []
-    #             for t in targets:
-    #                 gts.append({
-    #                     "boxes": t["boxes"].detach().cpu(),
-    #                     "labels": t["labels"].detach().cpu(),
-    #                 })
-
-    #             metric.update(preds, gts)
-
-    #     metrics = metric.compute()
-    #     map50 = float(metrics.get("map_50", torch.tensor(-1.0)).item())
-    #     print("\n\nMap on training images:", map50)
-    # except Exception as e:
-    #     print("Eval skipped due to:", e)
-    #     map50 = -1.0
-
-    ## Added by Andreas for debugging
-    from torchvision.transforms.functional import to_pil_image, resize
-    import random
-    import torchvision
-
-    # pick 5 random indices
-    num_samples = 5
-    indices = list(range(len(train_set) - num_samples, len(train_set)))
-
-    vis_dir = Path(args.output) / "train_vis"
-    vis_dir.mkdir(parents=True, exist_ok=True)
-
-    for i, idx in enumerate(indices):
-        img, target = train_set[idx]
-        img_tensor = img.to(device).unsqueeze(0)
-
-        with torch.no_grad():
-            output = model(img_tensor)[0]
-
-        img_cpu = img.detach().cpu()
-        pred = {k: v.detach().cpu() for k, v in output.items()}
-        gt = {k: v.detach().cpu() for k, v in target.items()}
-
-        # resize and convert to uint8
-        canvas = (img_cpu * 255).byte()
-
-        # draw ground-truth boxes
-        if gt["boxes"].numel() > 0:
-            canvas = torchvision.utils.draw_bounding_boxes(
-                canvas, gt["boxes"],
-                labels=["GT"] * gt["boxes"].shape[0],
-                colors="green", width=2
-            )
-
-        # draw predicted boxes
-        if pred["boxes"].numel() > 0:
-            boxes = pred["boxes"]
-            scores = pred["scores"]
-            canvas = torchvision.utils.draw_bounding_boxes(
-                canvas, boxes,
-                labels=[f"{s:.2f}" for s in scores],
-                colors="red", width=2
-            )
+    #     # draw predicted boxes
+    #     if pred["boxes"].numel() > 0:
+    #         boxes = pred["boxes"]
+    #         scores = pred["scores"]
+    #         canvas = torchvision.utils.draw_bounding_boxes(
+    #             canvas, boxes,
+    #             labels=[f"{s:.2f}" for s in scores],
+    #             colors="red", width=2
+    #         )
         
-        out_path = vis_dir / f"train_sample_{i+1}_vis.jpg"
-        to_pil_image(canvas).save(out_path)
-        print(f"✅ Saved training visualization to {out_path}")
+    #     out_path = vis_dir / f"train_sample_{i+1}_vis.jpg"
+    #     to_pil_image(canvas).save(out_path)
+    #     print(f"✅ Saved training visualization to {out_path}")
 
-        # ===============================
+    #     # ===============================
 
 if __name__ == "__main__":
     main()
