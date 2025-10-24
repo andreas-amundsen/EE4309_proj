@@ -138,9 +138,8 @@ def main():
             lines = f.readlines()
             if len(lines) > 0:
                 last_epoch = json.loads(lines[-1])["epoch"]
-
-            model.load_state_dict(torch.load(weight_file_path))
-            print(f"Resumed training from epoch {last_epoch} using weights from {weight_file_path}")
+                model.load_state_dict(torch.load(weight_file_path))
+                print(f"Resumed training from epoch {last_epoch} using weights from {weight_file_path}")
     else:
         print("No existing checkpoint found, starting training from scratch.")
     # ===============================================================
@@ -232,14 +231,15 @@ def main():
           print("Eval skipped due to:", e)
           map50 = -1.0
 
+        json_compatible_loss_dict = {k: v.item() for k, v in loss_dict.items()}
         # Save logs in colab
-        save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50":map50, "loss_dict": loss_dict, }], os.path.join(args.output, "logs.jsonl"))
+        save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50":map50, "loss_dict": json_compatible_loss_dict}], os.path.join(args.output, "logs.jsonl"))
 
         # Save logs to private drive, NB! Hard coded file path
 
         # Only try to write if base path exists (meaning Drive is mounted)
         if os.path.exists(base_path):
-            save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50": map50, "loss_dict": loss_dict}], logs_file_path)
+            save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50": map50, "loss_dict": json_compatible_loss_dict}], logs_file_path)
             print(f"Saved logs to {logs_file_path}")
         else:
             print(f"⚠️ Could not save log file, since path could not be found: {base_path}.")
