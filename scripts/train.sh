@@ -28,7 +28,7 @@ python3 -m src.engine.train \
   --val-set trainval \
   --epochs "$EPOCHS" \
   --batch-size "$BATCH_SIZE" \
-  --lr 0.002 \
+  --lr 0.05 \
   --weight-decay 1e-4 \
   --momentum 0.9 \
   --num-workers 4 \
