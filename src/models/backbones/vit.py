@@ -428,9 +428,9 @@ class ViT(nn.Module):
         # 3. Pass through all transformer blocks sequentially
         # 4. Return output in the expected format (permute to BCHW)
         # Note: Output should be a dict with the feature name as key
-        B, H, W, C = x.shape
-        
         x = self.patch_embed(x)
+
+        B, H, W, C = x.shape
 
 
         pos_embed = get_abs_pos(abs_pos=self.pos_embed, hw=(H, W), has_cls_token=False)
@@ -656,11 +656,11 @@ def build_vit_backbone(config: Optional[ViTBackboneConfig] = None) -> ViT:
         state_dict = torch.load(config.weights_path, map_location="cpu")
         vit.load_state_dict(state_dict, strict=False)
     
-    # Implemented by Andreas
-    else: 
-        from torchvision.models import vit_b_16, ViT_B_16_Weights
-        pretrained_vit = vit_b_16(weights=ViT_B_16_Weights.IMAGENET1K_V1)
-        vit.load_state_dict(pretrained_vit.state_dict(), strict=False)
+    # Implemented by student: Load pretrained weights (imagenet) from torchvision
+    # else: 
+    #     from torchvision.models import vit_b_16, ViT_B_16_Weights
+    #     pretrained_vit = vit_b_16(weights=ViT_B_16_Weights.IMAGENET1K_V1)
+    #     vit.load_state_dict(pretrained_vit.state_dict(), strict=False)
 
     ####
 
