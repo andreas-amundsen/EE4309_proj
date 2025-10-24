@@ -82,6 +82,5 @@ def get_vit_fasterrcnn_model(
         roi_pool=roi_pool, 
         num_classes=num_classes,
         config=detector_config,
-        
     )
     # ================================================================

@@ -3,10 +3,7 @@ import os, argparse, time
 from pathlib import Path
 from typing import Dict
 import torch
-
-# Added by student
 import json
-# ===============================================
 
 from torch.utils.data import DataLoader
 from torch.optim import SGD
@@ -42,13 +39,13 @@ def get_args():
 
     return ap.parse_args()
 
-# Implemented by student:
+
 def save_jsonl(data, filename):
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, 'a') as f:
         for entry in data:
             f.write(json.dumps(entry) + '\n')
-# ===============================================================
+
 
 def main():
     args = get_args()
@@ -125,7 +122,7 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     best_map = -1.0
 
-    # Implemented by student: Handle resuming from checkpoint if exists
+    # Load model weights from checkpoint if checkpoint exist
     start_epoch = 1
 
     base_path = '/content/drive/MyDrive/EE4309-project/'
@@ -204,10 +201,9 @@ def main():
               for images, targets in val_loader:
                     images = [img.to(device) for img in images]
 
-                    # Inference
                     outputs = model(images)
 
-                    # torchmetrics expects CPU tensors
+                    # Torchmetrics expects CPU tensors
                     preds = []
                     for o in outputs:
                         preds.append({
@@ -231,16 +227,15 @@ def main():
           print("Eval skipped due to:", e)
           map50 = -1.0
 
+        # Save logs to colab and private disk
         json_compatible_loss_dict = {k: v.item() for k, v in loss_dict.items()}
-        # Save logs in colab
         save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50":map50, "loss_dict": json_compatible_loss_dict}], os.path.join(args.output, "logs.jsonl"))
 
-        # Only try to write if base path exists (meaning Drive is mounted)
         if os.path.exists(base_path):
             save_jsonl([{"epoch": epoch, "loss": avg_loss, "map50": map50, "loss_dict": json_compatible_loss_dict}], logs_file_path)
             print(f"Saved logs to {logs_file_path}")
         else:
-            print(f"⚠️ Could not save log file, since path could not be found: {base_path}.")
+            print(f"⚠️ Could not save log file to disk, since path could not be found: {base_path}.")
         # ====================================================
 
         is_best = map50 > best_map
@@ -260,13 +255,11 @@ def main():
             torch.save(ckpt, os.path.join(args.output, "best.pt"))
         print(f"[epoch {epoch}] avg_loss={avg_loss:.4f}  mAP@0.5={map50:.4f}  best={best_map:.4f}")
 
-        # Implemented by student: Also save to Drive if available
+        # Save best.pt and last.pt to Drive to enable checkpoint recovery
         if os.path.exists(drive_path):
             torch.save(ckpt, os.path.join(drive_path, "last.pt"))
             if is_best:
                 torch.save(ckpt, os.path.join(drive_path, "best.pt"))
-
-        # ===============================================
 
 if __name__ == "__main__":
     main()

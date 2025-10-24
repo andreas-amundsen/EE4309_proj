@@ -96,7 +96,7 @@ def build_faster_rcnn(
     #    - rpn_head for region proposal network
     #    - roi_pool for feature extraction from proposals
     #    - config parameters for detection thresholds
-    # 4. NB! not done explicitly: Replace the box predictor head for the correct number of classes
+    # 4. Replace the box predictor head for the correct number of classes
     # 5. Return the assembled model
 
     cfg = config or DetectorConfig()

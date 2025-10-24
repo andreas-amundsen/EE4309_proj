@@ -180,10 +180,9 @@ class BackboneWithFPN(nn.Module):
         # 2. Pass features through FPN (self.fpn) to create feature pyramid
         # 3. Return the FPN output (OrderedDict of multi-scale features)
         # This creates the feature pyramid needed for multi-scale detection
-        features = self.body(x)      # dict {layer-str: tensor}
+        features = self.body(x)
 
-        # step-2: feed those into FPN to obtain fused pyramid
-        feature_pyramid = self.fpn(features) # dict {level-idx: tensor}
+        feature_pyramid = self.fpn(features)
 
         return feature_pyramid
         # =================================================================
@@ -242,6 +241,7 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
     if config is None:
         config = ResNetBackboneConfig()
     
+    # Change between pretrained or not here
     config.pretrained = False
     # config.pretrained = True
     # config.weights = "IMAGENET1K_V1"
@@ -268,32 +268,6 @@ def build_resnet50_fpn_backbone(config: Optional[ResNetBackboneConfig] = None) -
         in_channels_list=in_channels_list,
         out_channels=config.out_channels,
     )
-    ### For debugging purpose
-    # if True:
-    #     try:
-    #         backbone_with_fpn.eval()
-    #         import torch as _torch
-
-    #         # Use a moderate size to exercise the pyramid without heavy memory use
-    #         dummy = _torch.zeros(1, 3, 800, 800)
-    #         with _torch.no_grad():
-    #             feats = backbone_with_fpn(dummy)
-
-    #         if not isinstance(feats, dict) or len(feats) == 0:
-    #             print("WARNING: backbone_with_fpn returned no feature maps (empty dict)")
-    #         else:
-    #             print("Backbone FPN feature maps:")
-    #             for k, v in feats.items():
-    #                 if not isinstance(v, _torch.Tensor):
-    #                     print(f"  - key={k}: not a Tensor (type={type(v)})")
-    #                 else:
-    #                     print(f"  - key={k}: shape={tuple(v.shape)} dtype={v.dtype}")
-    #                     if v.ndim != 4:
-    #                         print(f"    -> WARNING: expected 4D tensor (B,C,H,W), got ndim={v.ndim}")
-    #                     if v.shape[1] != config.out_channels:
-    #                         print(f"    -> WARNING: expected out_channels={config.out_channels}, got {v.shape[1]}")
-    #     except Exception as _e:
-    #         print(f"WARNING: validation forward pass failed: {_e}")
 
     return backbone_with_fpn
     # ===================================================================
