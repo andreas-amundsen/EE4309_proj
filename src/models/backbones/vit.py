@@ -428,9 +428,12 @@ class ViT(nn.Module):
         # 3. Pass through all transformer blocks sequentially
         # 4. Return output in the expected format (permute to BCHW)
         # Note: Output should be a dict with the feature name as key
+        B, H, W, C = x.shape
+        
         x = self.patch_embed(x)
 
-        pos_embed = get_abs_pos(abs_pos=self.pos_embed, hw=(x.shape[1], x.shape[2]), has_cls_token=False)
+
+        pos_embed = get_abs_pos(abs_pos=self.pos_embed, hw=(H, W), has_cls_token=False)
         x = x + pos_embed
 
         for block in self.blocks:
